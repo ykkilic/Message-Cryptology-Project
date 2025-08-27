@@ -1,0 +1,8 @@
+# ninja log v6
+2	586	1756294731409765922	CMakeFiles/cryptology_project_main.dir/db_utils.cpp.o	4ee4c556860ca19f
+2	589	1756294731409995380	CMakeFiles/cryptology_project_main.dir/redis_utils.cpp.o	1de1d68dd30fba36
+3	1345	1756294731410169338	CMakeFiles/cryptology_project_main.dir/cryptology.cpp.o	7d95d417039e70ba
+1	1356	1756294731408512175	CMakeFiles/cryptology_project_main.dir/test_secure_messaging.cpp.o	c1ae5a5e21efe701
+1357	1474	1756294732764157375	cryptology_project_main	a180101235195c7e
+6	1041	1756294765045291399	CMakeFiles/cryptology_project_main.dir/test_secure_messaging.cpp.o	c1ae5a5e21efe701
+1042	1144	1756294766081074112	cryptology_project_main	a180101235195c7e
