@@ -1,299 +1,3 @@
-// #include <iostream>
-// #include <iomanip>
-// #include <sstream>
-// #include <string>
-// #include <openssl/evp.h>
-// #include <chrono>
-// #include <libpq-fe.h>
-// #include "redis_utils.h"
-// #include "db_utils.h"
-// #include "cryptology.h"
-//
-// using namespace std;
-//
-// constexpr const char* CONN_INFO = "host=localhost port=5432 dbname=blockchain user=postgres password=Bjk1903";
-//
-// string sha256(const string &input) {
-//     unsigned char hash[EVP_MAX_MD_SIZE];
-//     unsigned int length = 0;
-//
-//     EVP_MD_CTX* context = EVP_MD_CTX_new();
-//     EVP_DigestInit_ex(context, EVP_sha256(), nullptr);
-//     EVP_DigestUpdate(context, input.c_str(), input.size());
-//     EVP_DigestFinal_ex(context, hash, &length);
-//     EVP_MD_CTX_free(context);
-//
-//     stringstream ss;
-//     for (unsigned int i = 0; i < length; ++i)
-//         ss << hex << setw(2) << setfill('0') << (int)hash[i];
-//     return ss.str();
-// }
-//
-// double get_current_timestamp() {
-//     auto now = chrono::system_clock::now();
-//     double duration_float = chrono::duration_cast<chrono::microseconds>(
-//         now.time_since_epoch()
-//     ).count() / 1e6;
-//     return duration_float;
-// }
-//
-// class Block {
-//     private:
-//         int index;
-//         float timestamp;
-//         string data;
-//         string previousHash;
-//         int nonce = 0;
-//         string hash = calculateHash();
-//     public:
-//         Block(int inx, float tmstmp, string dt, string prevHash) {
-//             this->index = inx;
-//             this->timestamp = tmstmp;
-//             this->data = dt;
-//             this->previousHash = prevHash;
-//         }
-//
-//         string calculateHash() {
-//             string value = to_string(this->index) + to_string(this->timestamp) + this->data + this->previousHash + to_string(this->nonce);
-//             return sha256(value);
-//         }
-//
-//         void mineBlock(int difficulty){
-//             string target(difficulty, '0');
-//             int attempt = 0;
-//             while (hash.substr(0, difficulty) != target) {
-//                 this->nonce++;
-//                 this->hash = calculateHash();
-//                 attempt++;
-//             }
-//             // cout << "Blok Madenciliği başarıyla yapıldı! Hash: " << this->hash << endl;
-//             // cout << "Deneme Sayısı: " << attempt << endl;
-//         }
-//
-//         // GETTER METHODS
-//         int& getIndex(){
-//             return index;
-//         }
-//         float& getTimestamp() {
-//             return timestamp;
-//         }
-//         string& getData() {
-//             return data;
-//         }
-//         string& getPreviousHash() {
-//             return previousHash;
-//         }
-//         int& getNonce() {
-//             return nonce;
-//         }
-//         string& getHash() {
-//             return hash;
-//         }
-//
-// };
-//
-// class Blockchain {
-//     private:
-//         vector<Block> chain;
-//         int difficulty;
-//         int userId;
-//     public:
-//
-//         Blockchain(int difficult, int user_id){
-//             this->chain.push_back(create_genesis_block());
-//             this->difficulty = difficult;
-//             this->userId = user_id;
-//         }
-//
-//         Block create_genesis_block(){
-//             return Block(0, get_current_timestamp(), "Genesis Block", "0");
-//         }
-//         Block get_last_block(){
-//             return chain.back();
-//         }
-//         void add_block(string data){
-//             Block last_block = get_last_block();
-//             Block new_block = Block(this->chain.size(), get_current_timestamp(), data, last_block.getHash());
-//             new_block.mineBlock(this->difficulty);
-//             this->chain.push_back(new_block);
-//         }
-//
-//         vector<Block>& getChain() {
-//             return this->chain;
-//         }
-//
-//         int getDifficulty() {
-//             return this->difficulty;
-//         }
-//
-//         int getUserId() {
-//             return this->userId;
-//         }
-//
-//         void setUserId(int user_id) {
-//             this->userId = user_id;
-//         }
-// };
-//
-// bool is_chain_valid(Blockchain& blockchain){
-//     for (size_t i = 1; i < blockchain.getChain().size(); ++i) {
-//         Block& current = blockchain.getChain()[i];
-//         Block& previous = blockchain.getChain()[i-1];
-//         if (current.getHash() != current.calculateHash()) {
-//             return false;
-//         }
-//         if (current.getPreviousHash() != previous.getHash()) {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
-//
-// void print_chain(Blockchain& blockchain){
-//     for (Block block : blockchain.getChain()) {
-//         cout << "---------------------------------------------" << endl;
-//         cout << "Index: " << block.getIndex() << endl;
-//         cout << "Timestamp" << block.getTimestamp() << endl;
-//         cout << "Data: " << block.getData() << endl;
-//         cout << "Previous Hash:" << block.getPreviousHash() << endl;
-//         cout << "Hash: " << block.getHash() << endl;
-//         cout << "---------------------------------------------" << endl;
-//     }
-//     cout << "Blockchain uzunluğu: " << blockchain.getChain().size() << endl;
-// }
-//
-// void insert_blockchain_to_db(Blockchain& blockchain) {
-//     PGconn* conn = connection(CONN_INFO);
-//     PGresult* res;
-//     for (Block block : blockchain.getChain()) {
-//         int *indis = &(block.getIndex());
-//         float *tmstmp = &(block.getTimestamp());
-//         string *data = &(block.getData());
-//         string *previous_hash = &(block.getPreviousHash());
-//         int *nonce = &(block.getNonce());
-//         string *hash = &(block.getHash());
-//         string control_query = "SELECT EXISTS (SELECT 1 FROM blockchain WHERE data ='"+ *data +"' AND user_id = '"+to_string(blockchain.getUserId())+"');";
-//         PGresult* control = exec_query(conn, control_query.c_str());
-//         if (!control) {
-//             cerr << "exec_query null döndü!" << endl;
-//             return;
-//         }
-//         bool exists = (strcmp(PQgetvalue(control, 0, 0), "t") == 0);
-//         if (exists) {
-//             cout << "Veri Zaten Mevcut" << endl;
-//             continue;
-//         } else {
-//             // Database'e bakan birisi difficulty değerini tespit edememesi için insert atarken rastgele bir sayı ekledim
-//             string query = "INSERT INTO blockchain(block_index, timestamp, data, previous_hash, nonce, hash, user_id, difficulty) VALUES ("
-//                + to_string(*indis) + ", "
-//                + to_string(*tmstmp) + ", "
-//                + "'" + *data + "', "
-//                + "'" + *previous_hash + "', "
-//                + to_string(*nonce) + ", "
-//                + "'" + *hash + "'"+ ", "
-//                + to_string(blockchain.getUserId()) + ","
-//                + to_string(blockchain.getDifficulty() + 5551) +");";
-//             res = exec_query(conn, query.c_str());
-//             PQclear(res);
-//         }
-//     }
-//     clear_obj(conn, res);
-// }
-//
-// vector<string> encrypt_message(Blockchain& blockchain, vector<string> data, int user_id) {
-//     try {
-//         for (int i = 0; i < data.size(); i++) {
-//             // 2 katmanlı şifreleme
-//             json encrypted_message = encrypt_2layer(data[i], user_id);
-//
-//             // Blockchain'e sadece ciphertext yazıyoruz
-//             data[i] = encrypted_message["ciphertext"];
-//
-//             // Blockchain'e block ekle
-//             blockchain.add_block(data[i]);
-//         }
-//
-//         // Blockchain’i DB’ye kaydet
-//         insert_blockchain_to_db(blockchain);
-//
-//         return data;
-//     } catch (exception& e) {
-//         throw runtime_error(e.what());
-//     }
-// }
-//
-// void decrypt_chain(int user_id) {
-//     PGconn* conn = connection(CONN_INFO);
-//     string control_query = "SELECT data FROM blockchain WHERE user_id=" + to_string(user_id) + " ORDER BY block_index";
-//     PGresult* res = exec_query(conn, control_query.c_str());
-//
-//     if (!res) {
-//         throw runtime_error("exec_query failed");
-//     }
-//
-//     int rowCount = PQntuples(res);
-//     int colCount = PQnfields(res);
-//
-//     if (colCount != 1) {
-//         cerr << "Bu fonksiyon sadece tek sütunlu sonuçlar için uygundur." << endl;
-//         PQclear(res);
-//         PQfinish(conn);
-//         return;
-//     }
-//
-//     // Blockchain'den gelen tüm ciphertextler
-//     vector<string> results;
-//     for (int i = 0; i < rowCount; ++i) {
-//         const char* data = PQgetvalue(res, i, 0);
-//         if (data) {
-//             results.emplace_back(data);
-//         }
-//     }
-//
-//     // Her block için çözme işlemi
-//     for (size_t a = 0; a < results.size(); ++a) {
-//         cout << "Ciphertext (DB): " << results[a] << endl;
-//
-//         try {
-//             // Şimdi DB’den gelen ciphertext + Redis’ten alınan keyler ile çöz
-//             string decrypted = decrypt_2layer(user_id);
-//             cout << "Çözülen veri: " << decrypted << endl;
-//         } catch (const exception& e) {
-//             cerr << "Decrypt hatası (block " << a << "): " << e.what() << endl;
-//         }
-//     }
-//
-//     clear_obj(conn, res);
-// }
-//
-//
-// int main() {
-//
-//     decrypt_chain(2);
-//
-//
-//
-//     // int a = 1;
-//     // while (a < 10000) {
-//     //     const int difficulty = 1;
-//     //     const int user_id = a;
-//     //     Blockchain blockchain(difficulty, user_id);
-//     //
-//     //     vector<string> messageList;
-//     //
-//     //     messageList.push_back("İlk Veri");
-//     //     messageList.push_back("Merhaba Ben Yiğit Kağan Kılıç");
-//     //     messageList.push_back("Türkiyede Yaşıyorum");
-//     //     messageList.push_back("Babamın ismi İsmail");
-//     //     messageList.push_back("Blok Veri");
-//     //
-//     //     encrypt_message(blockchain, messageList, user_id);
-//     //
-//     //     print_chain(blockchain);
-//     //     a++;
-//     // }
-// }
-
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -504,11 +208,6 @@ void insert_blockchain_to_db(Blockchain& blockchain) {
     PQfinish(conn);
 }
 
-// Redis bağlantısı helper fonksiyonu
-// redisContext* connection_var() {
-//     return redis_connection("127.0.0.1", 6379);
-// }
-
 // Redis'te her block için benzersiz anahtar kullanarak şifreleme anahtarlarını sakla
 void set_to_redis_with_block(int user_id, int block_index, const json& encrypted_data) {
     redisContext* conn = connection_var();
@@ -712,27 +411,44 @@ void decrypt_chain(int user_id) {
 
 int main() {
     // Test için yeni veri şifreleme
-    const int difficulty = 5;
-    const int user_id = 6;
+    const int difficulty = 1;
+    int user_id = 1;
     Blockchain blockchain(difficulty, user_id);
 
-    vector<string> messageList;
-    messageList.push_back("İlk Veri");
-    messageList.push_back("Merhaba Ben Yiğit Kağan Kılıç");
-    messageList.push_back("Türkiyede Yaşıyorum");
-    messageList.push_back("Babamın ismi İsmail");
-    messageList.push_back("En Büyük Allah");
-    messageList.push_back("Blok Veri");
+    int counter = 0;
+    while (counter < 10000) {
+        vector<string> messageList;
+        messageList.push_back("İlk Veri");
+        messageList.push_back("Merhaba Ben Yiğit Kağan Kılıç");
+        messageList.push_back("Türkiyede Yaşıyorum");
+        messageList.push_back("Babamın ismi İsmail");
+        messageList.push_back("En Büyük Allah");
+        messageList.push_back("Blok Veri");
+
+        cout << "=== Şifreleme İşlemi ===" << endl;
+        encrypt_message(blockchain, messageList, user_id);
+        user_id++;
+        counter++;
+    }
 
 
-    cout << "=== Şifreleme İşlemi ===" << endl;
-    encrypt_message(blockchain, messageList, user_id);
-
-    cout << "\n=== Blockchain Yazdırma ===" << endl;
-    print_chain(blockchain);
-
-    cout << "\n=== Çözme İşlemi ===" << endl;
-    decrypt_chain(user_id);
+    // vector<string> messageList;
+    // messageList.push_back("İlk Veri");
+    // messageList.push_back("Merhaba Ben Yiğit Kağan Kılıç");
+    // messageList.push_back("Türkiyede Yaşıyorum");
+    // messageList.push_back("Babamın ismi İsmail");
+    // messageList.push_back("En Büyük Allah");
+    // messageList.push_back("Blok Veri");
+    //
+    //
+    // cout << "=== Şifreleme İşlemi ===" << endl;
+    // encrypt_message(blockchain, messageList, user_id);
+    //
+    // cout << "\n=== Blockchain Yazdırma ===" << endl;
+    // print_chain(blockchain);
+    //
+    // cout << "\n=== Çözme İşlemi ===" << endl;
+    // decrypt_chain(user_id);
 
     return 0;
 }
