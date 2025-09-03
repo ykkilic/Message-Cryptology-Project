@@ -11,7 +11,7 @@
 
 using namespace std;
 
-constexpr const char* CONN_INFO = "host=localhost port=5432 dbname=blockchain user=postgres password=Bjk1903";
+constexpr const char* CONN_INFO = "host=dbhost port=dbport dbname=dbname user=dbuser password=dbpass";
 
 string sha256(const string &input) {
     unsigned char hash[EVP_MAX_MD_SIZE];
